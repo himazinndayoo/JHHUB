@@ -1,0 +1,91 @@
+local player = game.Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+-- 1. Setup GUI Structure
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = game.CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local DragFrame = Instance.new("Frame")
+DragFrame.Name = "DragFrame"
+DragFrame.Parent = ScreenGui
+DragFrame.Size = UDim2.new(0, 120, 0, 50) 
+DragFrame.Position = UDim2.new(0.05, 0, 0.1, 0) 
+DragFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50) 
+DragFrame.BorderSizePixel = 0
+DragFrame.Active = true 
+
+local Button = Instance.new("TextButton")
+Button.Name = "LeaveButton"
+Button.Parent = DragFrame 
+Button.Size = UDim2.new(1, 0, 1, 0) 
+Button.BackgroundColor3 = Color3.fromRGB(255, 0, 0) 
+Button.Text = "Leave Game"
+Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+Button.Font = Enum.Font.SourceSansBold
+Button.TextSize = 20
+Button.BorderSizePixel = 0
+
+-- ====================================================================
+-- DRAGGING & CLICK LOGIC (Reliably handles both drag and click actions)
+-- ====================================================================
+
+local isDragging = false
+local dragStartPos = Vector2.new(0, 0)
+local mousePosOnDown = Vector2.new(0, 0) 
+local connection 
+
+local DRAG_THRESHOLD = 5 -- px
+
+local function startInput(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        isDragging = false 
+        mousePosOnDown = input.Position
+        dragStartPos = input.Position
+        
+        connection = UserInputService.InputChanged:Connect(function(moveInput)
+            if moveInput.UserInputType == Enum.UserInputType.MouseMovement or moveInput.UserInputType == Enum.UserInputType.Touch then
+                if (moveInput.Position - mousePosOnDown).magnitude > DRAG_THRESHOLD then
+                    isDragging = true 
+                    local delta = moveInput.Position - dragStartPos
+                    local newX = DragFrame.AbsolutePosition.X + delta.X
+                    local newY = DragFrame.AbsolutePosition.Y + delta.Y
+                    DragFrame.Position = UDim2.new(0, newX, 0, newY)
+                    dragStartPos = moveInput.Position
+                end
+            end
+        end)
+    end
+end
+
+local function endInput(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        if connection then
+            connection:Disconnect()
+            connection = nil
+        end
+        
+        if not isDragging then
+            player:Kick("Leave successful, Insta leave by JustArthurx")
+        end
+        
+        isDragging = false
+    end
+end
+
+Button.InputBegan:Connect(startInput)
+Button.InputEnded:Connect(endInput)
+
+-- ====================================================================
+-- ALTキーで即キック
+-- ====================================================================
+UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+    if not gameProcessedEvent then
+        if input.UserInputType == Enum.UserInputType.Keyboard then
+            if input.KeyCode == Enum.KeyCode.LeftAlt or input.KeyCode == Enum.KeyCode.RightAlt then
+                player:Kick("Leave successful, Insta leave by JustArthurx (Alt)")
+            end
+        end
+    end
+end)
